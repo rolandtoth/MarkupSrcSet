@@ -21,8 +21,8 @@ Generate srcset and bgset markup for [lazysizes](https://github.com/aFarkas/lazy
 ### Syntax
 
 ```php
-$image->srcset($imageSetName [, $classes, $resizeOptions])
-$image->bgset($imageSetName [, $classes, $resizeOptions])
+$image->srcset($imageSetName [, $classes, $resizeOptions, $flags])
+$image->bgset($imageSetName [, $classes, $resizeOptions, $flags])
 ```
 
 *Srcset example:*
@@ -36,12 +36,24 @@ This will generate the required srcset attributes using the image set "featured 
 *Srcset example with additional classes and image quality:*
 
 ```php
-<img <?php echo $page->featured_image->srcset('featured-image', 'my-class inline-block', array('quality' => 80)); ?>>
+<img <?php echo $page->featured_image->srcset('featured-image', 'lazyload my-class inline-block', array('quality' => 80)); ?>>
 ```
 
-This will add clases 'my-class' and 'inline-block' to the image, and the third parameter will set the image quality used for resize. For the latter see ProcessWire's image resize options [here](https://processwire.com/api/fieldtypes/images/).
+This will add clases 'lazyload', 'my-class' and 'inline-block' to the image, and the third parameter will set the image quality used for resize. For the latter see ProcessWire's image resize options [here](https://processwire.com/api/fieldtypes/images/).
 
-Note that the "lazyload" class will be always added even if setting other classes.
+Class "lazyload" will be added only if you add no other classes. You have to add "lazyload" class manually in such cases.
+
+*Example: override default "lazyload" class*:
+
+```php
+<img <?php echo $page->featured_image->srcset('featured-image', '__lazy inline-block'); ?>>
+```
+
+By specifying classes, the image element will have only the classes you have set:
+
+```php
+<img class="__lazy inline-block" ...>
+```
 
 *Bgset example:*
 
@@ -57,6 +69,21 @@ This will generate the following attributes:
 - inline style for the mobile background image (fallback if JavaScript is not available)
 
 Custom classes and image resize options work the same way as in $image->srcset().
+
+#### Flags (from v0.0.3)
+
+Flags can modify markup. These are simple strings separated with comma or space.
+
+Currently there is only one flag available: 'noFallbackImage'.
+
+**noFallbackImage**
+
+```php
+<img <?php echo $page->featured_image->srcset('featured-image', null, null, 'noFallbackImage'); ?>>
+```
+
+This will tell the module to add no fallback image so the generated markup won't have "src" attribute.
+
 
 ## Settings
 

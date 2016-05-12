@@ -30,7 +30,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
             'title'     => 'Markup SrcSet',
             'summary'   => __('Generate srcset and bgset markup.', __FILE__),
             'href'      => 'https://processwire.com/talk/topic/12981-markupsrcset/',
-            'version'   => 2,
+            'version'   => 3,
             'author'    => 'Roland Toth',
             'autoload'  => true,
             'singular'  => true,
@@ -115,8 +115,9 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
         $markup = "";
 
         $sizeName = isset($args[0]) ? $args[0] : null;
-        $classes = isset($args[1]) ? $args[1] . ' lazyload' : 'lazyload';
+        $classes = isset($args[1]) ? $args[1] : ' lazyload';
         $pwImageResizeOptions = isset($args[2]) ? $args[2] : null;
+        $flags = isset($args[3]) ? $args[3] : null;
 
         if (
             !($img instanceof Pageimage) ||
@@ -141,13 +142,30 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
             $srcset[$breakpoint] = $img->size($sizes[0], $sizes[1], $pwImageResizeOptions)->url . ' ' . $breakpoint;
         }
 
-        $fallbackImg = reset($sizeArray);
-        $fallbackImgSrc = $img->size($fallbackImg[0], $fallbackImg[1], $pwImageResizeOptions)->url;
+        $needFallbackImage = (stripos($flags, 'noFallbackImage') === false);
+
+		if($needFallbackImage) {
+	        $fallbackImg = reset($sizeArray);
+	        $fallbackImg = $img->size($fallbackImg[0], $fallbackImg[1], $pwImageResizeOptions);
+	        $fallbackImgSrc = $fallbackImg->url;
+		}
 
         if ($mode === 'srcset') {
-            $markup = 'src="' . $fallbackImgSrc . '" class="' . $classes . '" data-srcset="' . implode(', ', $srcset) . '" data-sizes="' . $dataSizes . '"';
+
+	        $markup = 'class="' . $classes . '" data-srcset="' . implode(', ', $srcset) . '" data-sizes="' . $dataSizes . '"';
+	        
+	        if($needFallbackImage) {
+            	$markup = 'src="' . $fallbackImgSrc . '" ' . $markup;
+	        }
+            
         } elseif ($mode === 'bgset') {
-            $markup = 'data-bgset="' . implode(', ', $srcset) . '" class="' . $classes . '" data-sizes="' . $dataSizes . '" style="background-image: url(' . $fallbackImgSrc . ')"';
+
+	        $markup = 'data-bgset="' . implode(', ', $srcset) . '" class="' . $classes . '" data-sizes="' . $dataSizes . '"';
+	        
+			if($needFallbackImage) {
+		        $markup = $markup .  ' style="background-image: url(' . $fallbackImgSrc . ')"';
+	        }
+            
         }
 
         return $markup;
@@ -260,7 +278,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
         }
 
         // do not load scripts if no lazysize image is available
-        if (strpos($event->return, 'lazyload') === false) {
+        if (strpos($event->return, 'data-bgset') === false || strpos($event->return, 'data-srcset') === false) {
             return;
         }
 
@@ -269,6 +287,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
         $scripts = <<< HTML
 <script src="$baseUrl/picturefill.min.js" async></script>
 <script src="$baseUrl/ls.bgset.min.js" async></script>
+<script src="$baseUrl/ls.attrchange.min.js" async></script>
 <script src="$baseUrl/lazysizes.min.js" async></script>
 HTML;
 
