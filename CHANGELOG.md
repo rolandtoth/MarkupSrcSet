@@ -1,5 +1,12 @@
 #Changelog
 
+### 0.0.4 (2016-05-14)
+
+- new module option to use "srcset" attribute instead "data-srcset" (requested by benbyford)
+- new module option to disable adding "lazyload" class automatically
+- "lazyload" class can be disabled by passing empty string or false as class name
+
+
 ### 0.0.3 (2016-05-12)
 
 - do not automatically add "lazyload" class if class was provided as a parameter

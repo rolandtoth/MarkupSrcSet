@@ -30,7 +30,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
             'title'     => 'Markup SrcSet',
             'summary'   => __('Generate srcset and bgset markup.', __FILE__),
             'href'      => 'https://processwire.com/talk/topic/12981-markupsrcset/',
-            'version'   => 3,
+            'version'   => 4,
             'author'    => 'Roland Toth',
             'autoload'  => true,
             'singular'  => true,
@@ -45,9 +45,11 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
      */
     static public function getDefaultData() {
         return array(
-            "breakpoints" => '360w 720w 990w 1220w',
-            "imageSets"   => '',
-            "loadScripts" => 1,
+            "breakpoints"      => '360w 720w 990w 1220w',
+            "imageSets"        => '',
+            "addLazyloadClass" => 1,
+            "loadScripts"      => 1,
+            "useSrcSetAttr"    => 0
         );
     }
 
@@ -81,7 +83,6 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
      * Function to render srcset markup.
      *
      * @param $event
-     * @param $args
      *
      * @return mixed
      */
@@ -113,9 +114,22 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
     public function getSrcSetMarkup($img, $args, $mode = 'srcset') {
 
         $markup = "";
+        $srcSetTag = "data-srcset";
+
+        $classes = null;
+
+        if (isset($args[1])) {
+            if (boolval($args[1])) {
+                // class is set but it's not empty or false
+                $classes = $args[1];
+            }
+        } else {
+            if (isset($this->configData['addLazyloadClass']) && $this->configData['addLazyloadClass'] === 1) {
+                $classes = 'lazyload';
+            }
+        }
 
         $sizeName = isset($args[0]) ? $args[0] : null;
-        $classes = isset($args[1]) ? $args[1] : ' lazyload';
         $pwImageResizeOptions = isset($args[2]) ? $args[2] : null;
         $flags = isset($args[3]) ? $args[3] : null;
 
@@ -131,6 +145,10 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
         $breakpoints = wire('modules')->MarkupSrcSet->breakpoints;
         $sizeArray = wire('config')->imageSets[$sizeName];
 
+        if (isset($this->configData['useSrcSetAttr']) && $this->configData['useSrcSetAttr'] === 1) {
+            $srcSetTag = "srcset";
+        }
+
         // get data-sizes value from the highest breakpoint
         $sizesMax = explode(' ', $breakpoints);
         $sizesMax = end($sizesMax);
@@ -144,28 +162,32 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
 
         $needFallbackImage = (stripos($flags, 'noFallbackImage') === false);
 
-		if($needFallbackImage) {
-	        $fallbackImg = reset($sizeArray);
-	        $fallbackImg = $img->size($fallbackImg[0], $fallbackImg[1], $pwImageResizeOptions);
-	        $fallbackImgSrc = $fallbackImg->url;
-		}
+        if ($needFallbackImage) {
+            $fallbackImg = reset($sizeArray);
+            $fallbackImg = $img->size($fallbackImg[0], $fallbackImg[1], $pwImageResizeOptions);
+            $fallbackImgSrc = $fallbackImg->url;
+        }
 
         if ($mode === 'srcset') {
 
-	        $markup = 'class="' . $classes . '" data-srcset="' . implode(', ', $srcset) . '" data-sizes="' . $dataSizes . '"';
-	        
-	        if($needFallbackImage) {
-            	$markup = 'src="' . $fallbackImgSrc . '" ' . $markup;
-	        }
-            
+            $markup = $srcSetTag . '="' . implode(', ', $srcset) . '" data-sizes="' . $dataSizes . '"';
+
+            if ($needFallbackImage) {
+                $markup = 'src="' . $fallbackImgSrc . '" ' . $markup;
+            }
+
         } elseif ($mode === 'bgset') {
 
-	        $markup = 'data-bgset="' . implode(', ', $srcset) . '" class="' . $classes . '" data-sizes="' . $dataSizes . '"';
-	        
-			if($needFallbackImage) {
-		        $markup = $markup .  ' style="background-image: url(' . $fallbackImgSrc . ')"';
-	        }
-            
+            $markup = 'data-bgset="' . implode(', ', $srcset) . '" data-sizes="' . $dataSizes . '"';
+
+            if ($needFallbackImage) {
+                $markup = $markup . ' style="background-image: url(' . $fallbackImgSrc . ')"';
+            }
+
+        }
+
+        if (!is_null($classes)) {
+            $markup .= ' class="' . $classes . '"';
         }
 
         return $markup;
@@ -278,7 +300,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
         }
 
         // do not load scripts if no lazysize image is available
-        if (strpos($event->return, 'data-bgset') === false || strpos($event->return, 'data-srcset') === false) {
+        if (strpos($event->return, 'data-bgset') === false && strpos($event->return, 'data-srcset') === false) {
             return;
         }
 
@@ -327,16 +349,33 @@ HTML;
         $f->value = !empty($data[$fieldName]) ? $data[$fieldName] : $defaultData[$fieldName];
         $wrapper->add($f);
 
+        $fieldName = 'addLazyloadClass';
+        $f = wire('modules')->get("InputfieldCheckbox");
+        $f->attr('name', $fieldName);
+        $f->label = __('Add "lazyload" class', __FILE__);
+        $f->notes = __('Add "lazyload" class to image markup automatically. The class can be added manually in template code where needed.', __FILE__);
+        $f->attr('checked', (isset($data[$fieldName]) && $data[$fieldName] == '1') ? 'checked' : '');
+        $f->columnWidth = 33;
+        $wrapper->add($f);
 
         $fieldName = 'loadScripts';
         $f = wire('modules')->get("InputfieldCheckbox");
         $f->attr('name', $fieldName);
         $f->label = __('Load scripts', __FILE__);
         $f->notes = __('Uncheck to disable loading lazysize JavaScripts (e.g if you would like to load them manually).', __FILE__);
-        $f->attr('checked', $data[$fieldName] == '1' ? 'checked' : '');
+        $f->attr('checked', (isset($data[$fieldName]) && $data[$fieldName] == '1') ? 'checked' : '');
+        $f->columnWidth = 33;
+        $wrapper->add($f);
+
+        $fieldName = 'useSrcSetAttr';
+        $f = wire('modules')->get("InputfieldCheckbox");
+        $f->attr('name', $fieldName);
+        $f->label = __('Use "srcset" attribute', __FILE__);
+        $f->notes = __('Check to add "srcset" tag on images instead of "data-srcset". This allows native srcset functionality in supported browsers.', __FILE__);
+        $f->attr('checked', (isset($data[$fieldName]) && $data[$fieldName] == '1') ? 'checked' : '');
+        $f->columnWidth = 34;
         $wrapper->add($f);
 
         return $wrapper;
     }
-
 }

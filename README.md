@@ -55,6 +55,10 @@ By specifying classes, the image element will have only the classes you have set
 <img class="__lazy inline-block" ...>
 ```
 
+You can disable automatically adding "lazyload" class in the module settings. However, you can still force to add the class in your templates manually.
+
+Passing `false` or `""` (empty string) as a class name will add no class to the markup.
+
 *Bgset example:*
 
 ```php
@@ -175,3 +179,31 @@ When using multipliers instead of size arrays, the image width and height will b
 ```
 
 This will ignore the "tablet" size so the mobile image size will be used below the desktop breakpoint.
+
+
+### Add "lazyload" class
+
+Here you can disable adding "lazyload" class required by the lazysizes JavaScript globally. This can be handy if you would like to use the native "srcset" tag instead of the default "data-srcset" (see below).
+
+However, passing "lazyload" to the $img->srcset() or $img->bgset() will still add the class to the markup:
+
+```php
+	<img <?php echo $page->featured_image->srcset('featured-image', 'lazyload'); ?>>
+```
+
+### Load scripts
+
+The module loads the following JavaScript files that you can entirely disable if you check this.
+
+- lazysizes.min.js
+- ls.bgset.min.js
+- ls.attrchange.min.js
+- picturefill.min.js
+
+### Use "srcset" attribute
+
+Check to add "srcset" tag on images instead of "data-srcset". This allows native srcset functionality in supported browsers.
+
+Note that you need to make sure the "lazyload" class is not added to the markup because the lazysizes JavaScript will block loading these images.
+
+Also note that "data-bgset" will not become "bgset" because there is no native support for that. If you use bgset in your code, make sure you load the required JavaScript files to make them work.
