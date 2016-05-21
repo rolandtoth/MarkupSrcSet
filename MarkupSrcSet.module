@@ -30,7 +30,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
             'title'     => 'Markup SrcSet',
             'summary'   => __('Generate srcset and bgset markup.', __FILE__),
             'href'      => 'https://processwire.com/talk/topic/12981-markupsrcset/',
-            'version'   => 4,
+            'version'   => 5,
             'author'    => 'Roland Toth',
             'autoload'  => true,
             'singular'  => true,
@@ -115,6 +115,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
 
         $markup = "";
         $srcSetTag = "data-srcset";
+        $sizesTag = "data-sizes";
 
         $classes = null;
 
@@ -147,6 +148,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
 
         if (isset($this->configData['useSrcSetAttr']) && $this->configData['useSrcSetAttr'] === 1) {
             $srcSetTag = "srcset";
+            $sizesTag = "sizes";
         }
 
         // get data-sizes value from the highest breakpoint
@@ -170,7 +172,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
 
         if ($mode === 'srcset') {
 
-            $markup = $srcSetTag . '="' . implode(', ', $srcset) . '" data-sizes="' . $dataSizes . '"';
+            $markup = $srcSetTag . '="' . implode(', ', $srcset) . '" ' . $sizesTag .'="' . $dataSizes . '"';
 
             if ($needFallbackImage) {
                 $markup = 'src="' . $fallbackImgSrc . '" ' . $markup;
@@ -178,6 +180,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
 
         } elseif ($mode === 'bgset') {
 
+            // note: bgset always needs data-sizes
             $markup = 'data-bgset="' . implode(', ', $srcset) . '" data-sizes="' . $dataSizes . '"';
 
             if ($needFallbackImage) {

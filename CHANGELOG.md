@@ -1,5 +1,11 @@
 #Changelog
 
+
+### 0.0.5 (2016-05-21)
+
+- use "sizes" attribute instead "data-sizes" when module option is set to use "srcset". Bgset still gets "data-sizes".
+
+
 ### 0.0.4 (2016-05-14)
 
 - new module option to use "srcset" attribute instead "data-srcset" (requested by benbyford)
