@@ -1,6 +1,10 @@
 #Changelog
 
 
+### 0.0.6 (2016-05-25)
+
+- fix PHP error on empty image sets.
+
 ### 0.0.5 (2016-05-21)
 
 - use "sizes" attribute instead "data-sizes" when module option is set to use "srcset". Bgset still gets "data-sizes".

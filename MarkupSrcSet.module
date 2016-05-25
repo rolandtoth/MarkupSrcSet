@@ -30,7 +30,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
             'title'     => 'Markup SrcSet',
             'summary'   => __('Generate srcset and bgset markup.', __FILE__),
             'href'      => 'https://processwire.com/talk/topic/12981-markupsrcset/',
-            'version'   => 5,
+            'version'   => 6,
             'author'    => 'Roland Toth',
             'autoload'  => true,
             'singular'  => true,
@@ -172,7 +172,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
 
         if ($mode === 'srcset') {
 
-            $markup = $srcSetTag . '="' . implode(', ', $srcset) . '" ' . $sizesTag .'="' . $dataSizes . '"';
+            $markup = $srcSetTag . '="' . implode(', ', $srcset) . '" ' . $sizesTag . '="' . $dataSizes . '"';
 
             if ($needFallbackImage) {
                 $markup = 'src="' . $fallbackImgSrc . '" ' . $markup;
@@ -280,7 +280,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
         $configImageSets = array();
         $imageSets = $this->imageSets;
 
-        if (!is_null($imageSets)) {
+        if (!empty($imageSets)) {
             $imageSets = json_decode($imageSets, true);
 
             foreach ($imageSets as $set => $sizes) {
