@@ -41,20 +41,6 @@ This will generate the required srcset attributes using the image set "featured 
 
 This will add clases 'lazyload', 'my-class' and 'inline-block' to the image, and the third parameter will set the image quality used for resize. For the latter see ProcessWire's image resize options [here](https://processwire.com/api/fieldtypes/images/).
 
-Class "lazyload" will be added only if you add no other classes. You have to add "lazyload" class manually in such cases.
-
-*Example: override default "lazyload" class*:
-
-```php
-<img <?php echo $page->featured_image->srcset('featured-image', '__lazy inline-block'); ?>>
-```
-
-By specifying classes, the image element will have only the classes you have set:
-
-```php
-<img class="__lazy inline-block" ...>
-```
-
 You can disable automatically adding "lazyload" class in the module settings. However, you can still force to add the class in your templates manually.
 
 Passing `false` or `""` (empty string) as a class name will add no class to the markup.

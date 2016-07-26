@@ -3,6 +3,7 @@
 
 ### 0.0.7 (2016-07-26)
 
+- better auto-adding of 'lazyload' class
 - merge module JavaScript files
 
 

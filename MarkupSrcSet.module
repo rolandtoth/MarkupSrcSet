@@ -75,7 +75,6 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
         if (isset($this->configData['loadScripts']) && $this->configData['loadScripts'] != "") {
             $this->addHookAfter('Page::render', $this, 'loadScripts');
         }
-
     }
 
 
@@ -114,19 +113,22 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
     public function getSrcSetMarkup($img, $args, $mode = 'srcset') {
 
         $markup = "";
+        $classes = "";
         $srcSetTag = "data-srcset";
         $sizesTag = "data-sizes";
 
         $classes = null;
 
-        if (isset($args[1])) {
-            if (boolval($args[1])) {
-                // class is set but it's not empty or false
-                $classes = $args[1];
-            }
-        } else {
-            if (isset($this->configData['addLazyloadClass']) && $this->configData['addLazyloadClass'] === 1) {
-                $classes = 'lazyload';
+        // get passed classes
+        if (isset($args[1]) && $args[1] !== false && $args[1] !== "") {
+            $classes = $args[1];
+        }
+
+        // add lazyload class if enabled in module settings
+        if (isset($this->configData['addLazyloadClass']) && $this->configData['addLazyloadClass'] === 1) {
+            // add only if class is not present
+            if (strpos($classes, 'lazyload') === false) {
+                $classes .= ' lazyload';
             }
         }
 
@@ -189,7 +191,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
 
         }
 
-        if (!is_null($classes)) {
+        if (!empty($classes)) {
             $markup .= ' class="' . $classes . '"';
         }
 
@@ -309,18 +311,13 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
 
         $baseUrl = wire('config')->urls->{$this->className} . 'scripts';
 
-        $scripts = <<< HTML
-<script src="$baseUrl/markupsrcset.min.js" async></script>
-HTML;
+//        order:
+//        picturefill.min.js
+//        ls.bgset.min.js
+//        ls.attrchange
+//        lazysizes
 
-//        $scripts = <<< HTML
-//<script src="$baseUrl/picturefill.min.js" async></script>
-//<script src="$baseUrl/ls.bgset.min.js" async></script>
-//<script src="$baseUrl/ls.attrchange.min.js" async></script>
-//<script src="$baseUrl/lazysizes.min.js" async></script>
-//HTML;
-
-        $event->return = str_replace("</body>", $scripts . PHP_EOL . '</body>', $event->return);
+        $event->return = str_replace("</body>", '<script src="' . $baseUrl . '/markupsrcset.min.js" async></script></body>', $event->return);
     }
 
     /**
