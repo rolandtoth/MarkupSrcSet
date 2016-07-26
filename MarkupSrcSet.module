@@ -30,7 +30,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
             'title'     => 'Markup SrcSet',
             'summary'   => __('Generate srcset and bgset markup.', __FILE__),
             'href'      => 'https://processwire.com/talk/topic/12981-markupsrcset/',
-            'version'   => 6,
+            'version'   => 7,
             'author'    => 'Roland Toth',
             'autoload'  => true,
             'singular'  => true,
@@ -310,11 +310,15 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
         $baseUrl = wire('config')->urls->{$this->className} . 'scripts';
 
         $scripts = <<< HTML
-<script src="$baseUrl/picturefill.min.js" async></script>
-<script src="$baseUrl/ls.bgset.min.js" async></script>
-<script src="$baseUrl/ls.attrchange.min.js" async></script>
-<script src="$baseUrl/lazysizes.min.js" async></script>
+<script src="$baseUrl/markupsrcset.min.js" async></script>
 HTML;
+
+//        $scripts = <<< HTML
+//<script src="$baseUrl/picturefill.min.js" async></script>
+//<script src="$baseUrl/ls.bgset.min.js" async></script>
+//<script src="$baseUrl/ls.attrchange.min.js" async></script>
+//<script src="$baseUrl/lazysizes.min.js" async></script>
+//HTML;
 
         $event->return = str_replace("</body>", $scripts . PHP_EOL . '</body>', $event->return);
     }

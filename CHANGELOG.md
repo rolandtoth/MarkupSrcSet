@@ -1,9 +1,15 @@
 #Changelog
 
 
+### 0.0.7 (2016-07-26)
+
+- merge module JavaScript files
+
+
 ### 0.0.6 (2016-05-25)
 
 - fix PHP error on empty image sets.
+
 
 ### 0.0.5 (2016-05-21)
 
