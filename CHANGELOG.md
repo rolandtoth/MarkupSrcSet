@@ -1,6 +1,15 @@
 #Changelog
 
 
+### 0.1.0 (2017-08-31)
+
+- complete rewrite - read the docs!
+- added srcsetUrls and $config->srcsetFallbackDataUri helpers
+- replaced picturefill polyfill with ls.respimg.js
+- updated JS assets (lazysizes: 4.0.0-RC3)
+- disable loading the module in the admin
+
+
 ### 0.0.7 (2016-07-26)
 
 - better auto-adding of 'lazyload' class

@@ -1,195 +1,167 @@
-MarkupSrcSet for ProcessWire
-================
+# MarkupSrcSet for ProcessWire
 
-Generate srcset and bgset markup for [lazysizes](https://github.com/aFarkas/lazysizes) in [ProcessWire CMS](http://processwire.com/).
+Generate srcset markup for [Lazysizes](https://github.com/aFarkas/Lazysizes) in [ProcessWire CMS](http://processwire.com/).
 
-## Features
 
-- generate srcset/bgset markup for [lazysizes](https://github.com/aFarkas/lazysizes)
-- set image sizes in JSON array
-- add required JavaScripts automatically (optional)
-- fallback to smallest image size if JavaScript is not available
-
-## Usage
+## Install and usage
 
 1. Install the module
 
-1. Configure breakpoints and image size sets in module settings
+1. Use method $image->srcset($sets[, $options]) in template files to generate markup
 
-1. Use methods $image->srcset() or $image->bgset() in template files to generate markup
+**Note**: the module got a major rewrite in version 0.1. Syntax and usage instructions have been completely changed, please read the docs carefully.
+
 
 ### Syntax
 
 ```php
-$image->srcset($imageSetName [, $classes, $resizeOptions, $flags])
-$image->bgset($imageSetName [, $classes, $resizeOptions, $flags])
+$image->srcset($sets [, $options])
 ```
 
-*Srcset example:*
+- **$sets**: string of comma-separated image sizes, optionally with a multiplier or divisor (see the section on Sets below)
+- **$options**: ProcessWire image resize option array (optional)
+
+
+### Parameters
+
+
+#### Sets
+
+*required parameter*
+
+Sets are comma-separated list of the desired image variation dimensions. For convenience it is possible to use a number as a multiplier/divisor to calculate new sets.
+
+The first set is the base size and needs to be in a **width** x **height** format (eg. `640x210`). This doesn't mean it has to be the smallest image set as sets will be automatically sorted in ascending order in the final output.
+
+The rest of the sets can be specified in either the same format or using multipliers/divisors, eg. `*2` or `/3`. This way you can easily add new sizes without calculating the exact dimensions.
+
+There is no limit on the number of sets.
+
+*Examples:*
+
+`1200x900, 600x450, 300x225`
+`1200x900, /2, /3` => 400x300, 600x450, 1200x900
+`800x400, /2, *2` => 400x200, 800x400, 1600x800
+`800x0, /2, *2` => 400x200, 800x400, 1600x800 (if original image ratio was 2:1)
+
+*Tips:*
+
+- set the base set to the largest image size you need and use divisors for smaller ones (it's easier to understand)
+- use `0` for width or height and the other dimension will be calculated by ProcessWire from the image ratio
+
+
+#### Options
+
+*optional parameter*
+
+Array of ProcessWire's [image resize options](https://processwire.com/api/fieldtypes/images/).
+
+*Example: setting image quality to 80:*
 
 ```php
-<img <?php echo $page->featured_image->srcset('featured-image'); ?>>
+<img src="..." data-srcset="<?php echo $page->featured_image->srcset('200x300,*2,*3', array('quality' => 80)) ?>" data-sizes="auto" alt="" class="lazyload" />
 ```
 
-This will generate the required srcset attributes using the image set "featured image" set in module settings (see below). It also adds the CSS class "lazyload" which is required by the lazysizes JavaScript to work.
 
-*Srcset example with additional classes and image quality:*
+## Examples
 
 ```php
-<img <?php echo $page->featured_image->srcset('featured-image', 'lazyload my-class inline-block', array('quality' => 80)); ?>>
+<img src="..." data-srcset="<?php echo $page->featured_image->srcset('200x300,500x750,*3') ?>" data-sizes="auto" alt="" class="lazyload" />
+
+<img src="..." data-bgset="<?php echo $page->featured_image->srcset('1200x900,/2,/3') ?>" data-sizes="auto" alt="" class="lazyload" />
+
+<img src="..." data-srcset="<?php echo $page->featured_image->srcset('200x300,*2,*3') ?>" data-sizes="auto" alt="" class="lazyload" />
 ```
 
-This will add clases 'lazyload', 'my-class' and 'inline-block' to the image, and the third parameter will set the image quality used for resize. For the latter see ProcessWire's image resize options [here](https://processwire.com/api/fieldtypes/images/).
+*Example output:*
 
-You can disable automatically adding "lazyload" class in the module settings. However, you can still force to add the class in your templates manually.
-
-Passing `false` or `""` (empty string) as a class name will add no class to the markup.
-
-*Bgset example:*
-
-```php
-<div <?php echo $page->images->first()->bgset('hero'); ?>>Lorem ipsum</div>
+```html
+<img src="..." data-srcset="/site/assets/files/1/photo.250x200.jpg 250w,/site/assets/files/1/photo.500x400.jpg 500w,/site/assets/files/1/photo.800x640.jpg 800w" data-sizes="auto" alt="" class="lazyload" />
 ```
 
-This will generate the following attributes:
+The "lazyload" class and the "data-sizes" attribute need to be added to the markup. The latter can be set to "auto" unless you need specific needs (consult the Lazysizes documentation to learn more).
 
-- "data-bgset" with urls to different image size variations
-- "lazyload" class
-- "data-sizes"
-- inline style for the mobile background image (fallback if JavaScript is not available)
+**Important**: if you are using `data-sizes="auto"` it is recommended to add this into your CSS (from [here](https://github.com/aFarkas/lazysizes#markup-api):
 
-Custom classes and image resize options work the same way as in $image->srcset().
-
-#### Flags (from v0.0.3)
-
-Flags can modify markup. These are simple strings separated with comma or space.
-
-Currently there is only one flag available: 'noFallbackImage'.
-
-**noFallbackImage**
-
-```php
-<img <?php echo $page->featured_image->srcset('featured-image', null, null, 'noFallbackImage'); ?>>
-```
-
-This will tell the module to add no fallback image so the generated markup won't have "src" attribute.
-
-
-## Settings
-
-### Breakpoints
-
-Space-separated list of responsive breakpoints (mobile-first).
-
-*Example:*
-
-```
-360w 720w 990w 1220w
-```
-
-### Image Sets
-
-JSON array that holds image sizes.
-
-There are three ways to specify image sets, see the exampes below.
-
-Common rules:
-- the first size is always the base (mobile) image size, specified in an array containing width and height
-- the rest of the sizes can be specified in either width/height arrays or multipliers which multiply the base size
-- setting zero in width or height means 'auto' (native ProcessWire feature)
-- setting null for width or height means 'calculate this value from the mobile value'
-- if a breakpoint needs to be skipped, use null for the image size
-
-**Examples**
-
-*Setting the mobile image size + set width or height for the rest of the breakpoints. Keeps image ratio.*
-
-```
-{
-    "hero": [
-        [640, 210], [1080, null], [1920, null]
-    ]
+```css
+img[data-sizes="auto"] {
+    display: block;
+    width: 100%;
 }
 ```
 
-By setting null as the height, image height will be calculated from the mobile size using the current width. For example, the second height will be `210/640 * 1920 = 630 pixels`.
+Use `data-srcset` or `data-bgset` tag if you would like to use Lazysizes, otherwise use `srcset`.
 
 
-*Setting the mobile image size + set multipliers for the rest of the breakpoints. Also keeps image ratio.*
+## Helpers
 
-```
-{
-    "featured-image": [
-        [360, 240], 1.333, 2.667
-    ]
-}
-```
+The module comes with some helpers to support [markup patterns](https://github.com/aFarkas/lazysizes#recommendedpossible-markup-patterns).
 
-When using multipliers instead of size arrays, the image width and height will be calculated from the mobile size. In the example above the calculated sizes will be `[360, 240], [480, 320], [960, 640]`.
+### $img->srcsetUrls
 
-*Setting all image sizes manually. This allows setting arbitrary image ratios.*
+*Access individual image set urls*
 
-```
-{
-    "gallery-thumb": [
-        [240, 120], [480, 300], [800, 576]
-    ]
-}
-```
-
-*All these can be combined:*
-
-
-```
-{
-    "hero": [
-        [640, 210], [1080, null], [1920, null]
-    ],
-    "featured-image": [
-        [360, 240], 1.333, 2.667
-    ],
-    "gallery-thumb": [
-        [240, 120], [480, 300], [800, 576]
-    ]
-}
-```
-
-*Skipping an image size:*
-
-```
-{
-    "only-mobile-and-desktop": [
-        [300, 120], null, [1280, 720]
-    ]
-}
-```
-
-This will ignore the "tablet" size so the mobile image size will be used below the desktop breakpoint.
-
-
-### Add "lazyload" class
-
-Here you can disable adding "lazyload" class required by the lazysizes JavaScript globally. This can be handy if you would like to use the native "srcset" tag instead of the default "data-srcset" (see below).
-
-However, passing "lazyload" to the $img->srcset() or $img->bgset() will still add the class to the markup:
+After calling $img->srcset(...) the $img object will get a temporary `srcsetUrls` property. This is an array of image sets to retrieve the first, last or any other image set's url:
 
 ```php
-	<img <?php echo $page->featured_image->srcset('featured-image', 'lazyload'); ?>>
+$img->srcsetUrls['first']
+$img->srcsetUrls[0]
+$img->srcsetUrls[1]
+$img->srcsetUrls[2]
+$img->srcsetUrls['last']
 ```
 
-### Load scripts
+This can come handy when setting the fallback src attribute:
 
-The module loads the following JavaScript files that you can entirely disable if you check this.
+```php
+<?php $img = $page->featured_image; ?>
+<img data-srcset="<?php echo $img->srcset('200x300,*2,*3'); ?>" src="<?php echo $img->srcsetUrls['first']; ?>" data-sizes="auto" alt="" class="lazyload" />
+```
 
-- lazysizes.min.js
-- ls.bgset.min.js
-- ls.attrchange.min.js
-- picturefill.min.js
+...or setting bgset fallback image with inline style:
 
-### Use "srcset" attribute
+```php
+<?php $img = $page->featured_image; ?>
+<div data-bgset="<?php echo $img->srcset('200x300,*2,*3'); ?>" style="background-image: url('<?php echo $img->srcsetUrls[0]; ?>');" data-sizes="auto" class="lazyload"></div>
+```
 
-Check to add "srcset" tag on images instead of "data-srcset". This allows native srcset functionality in supported browsers.
+...or adding fallback image in a noscript tag:
 
-Note that you need to make sure the "lazyload" class is not added to the markup because the lazysizes JavaScript will block loading these images.
+```php
+<?php $img = $page->featured_image; ?>
+<img data-srcset="<?php echo $img->srcset('200x300,*2,*3'); ?>" data-sizes="auto" alt="" class="lazyload" />
+<noscript>
+    <img src="<?php echo $img->srcsetUrls['last']; ?>" />
+</noscript>
+```
 
-Also note that "data-bgset" will not become "bgset" because there is no native support for that. If you use bgset in your code, make sure you load the required JavaScript files to make them work.
+***Remember that $img->srcsetUrls is available only after the srcset() method was called!***
+
+
+### $config->srcsetFallbackDataUri
+
+*Global variable for `data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==`*
+
+Use this if you prefer a transparent image src as a fallback. You can overwrite it in your code if you wish.
+
+```php
+<?php $img = $page->featured_image; ?>
+<img data-srcset="<?php echo $img->srcset(); ?>" src="<?php echo $config->srcsetFallbackDataUri; ?>" class="lazyload" data-sizes="auto" alt="" />
+```
+
+## Module settings
+
+
+### Loading scripts
+
+The module loads the 'markupsrcset.js' file that consists of the following files (combined and minified):
+
+- ls.respimg.js
+- ls.bgset.js
+- ls.attrchange.js
+- lazysizes.js
+
+The script is loaded only if the page markup contains "data-srcset" or "data-bgset".
+
+
+You can disable loading the script at the module's settings page (eg. if you would like to load it manually).

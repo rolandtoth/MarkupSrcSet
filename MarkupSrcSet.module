@@ -1,38 +1,40 @@
 <?php namespace ProcessWire;
 
-    /**
-     * Processwire module for generating srcset markup.
-     * by Roland Toth (tpr)
-     *
-     * ProcessWire 3.x
-     * Copyright (C) 2011 by Ryan Cramer
-     * Licensed under GNU/GPL v2, see LICENSE.TXT
-     *
-     * http://www.processwire.com
-     * http://www.ryancramer.com
-     *
-     */
+/**
+ * Processwire module for generating srcset markup.
+ * by Roland Toth (tpr)
+ *
+ * ProcessWire 3.x
+ * Copyright (C) 2011 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
 
 /**
  * Class MarkupSrcSet
  *
  * @package ProcessWire
  */
-class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
+class MarkupSrcSet extends WireData implements Module, ConfigurableModule
+{
 
     public $configData;
 
     /**
      * Basic information about module
      */
-    public static function getModuleInfo() {
+    public static function getModuleInfo()
+    {
         return array(
-            'title'     => 'Markup SrcSet',
-            'summary'   => __('Generate srcset and bgset markup.', __FILE__),
-            'href'      => 'https://processwire.com/talk/topic/12981-markupsrcset/',
-            'version'   => 7,
+            'title'     => 'MarkupSrcSet',
+            'summary'   => __('Generate srcset markup with ease.', __FILE__),
+            'href'      => 'http://modules.processwire.com/modules/markup-src-set/',
+            'version'   => 10,
             'author'    => 'Roland Toth',
-            'autoload'  => true,
+            'autoload'  => 'template!=admin',
             'singular'  => true,
             'permanent' => false,
             'icon'      => 'cubes'
@@ -43,17 +45,15 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
      * Default configuration for module
      *
      */
-    static public function getDefaultData() {
+    static public function getDefaultData()
+    {
         return array(
-            "breakpoints"      => '360w 720w 990w 1220w',
-            "imageSets"        => '',
-            "addLazyloadClass" => 1,
-            "loadScripts"      => 1,
-            "useSrcSetAttr"    => 0
+            "loadScripts" => 1
         );
     }
 
-    public function __toString() {
+    public function __toString()
+    {
         return __CLASS__;
     }
 
@@ -63,321 +63,220 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule {
      *
      * @throws WireException
      */
-    public function ready() {
-
+    public function ready()
+    {
         $this->configData = $this->wire('modules')->getModuleConfigData($this);
 
-        $this->addHookBefore('Page::render', $this, 'storeImageSets');
-
         $this->addHook("Pageimage::srcset", $this, "getSrcSet");
-        $this->addHook("Pageimage::bgset", $this, "getBgSet");
 
         if (isset($this->configData['loadScripts']) && $this->configData['loadScripts'] != "") {
             $this->addHookAfter('Page::render', $this, 'loadScripts');
         }
+
+        // add transparent data uri fallback to $config
+        $this->wire('config')->srcsetFallbackDataUri = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
     }
 
 
     /**
-     * Function to render srcset markup.
+     * Prepare parameters and call the markup generator method.
      *
-     * @param $event
-     *
-     * @return mixed
+     * @return bool
      */
-    public function getSrcSet(HookEvent $event) {
-        $event->return = $this->getSrcSetMarkup($event->object, $event->arguments, 'srcset');
-    }
+    protected function getSrcSet(HookEvent $event)
+    {
+        $args = $event->arguments;
 
-
-    /**
-     * Function to render bgset markup.
-     *
-     * @param $event
-     *
-     * @return mixed
-     */
-    public function getBgSet(HookEvent $event) {
-        $event->return = $this->getSrcSetMarkup($event->object, $event->arguments, 'bgset');
-    }
-
-    /**
-     * Generates srcset or bgset markup.
-     *
-     * @param $img
-     * @param $args
-     * @param string $mode
-     *
-     * @return bool|string
-     */
-    public function getSrcSetMarkup($img, $args, $mode = 'srcset') {
-
-        $markup = "";
-        $classes = "";
-        $srcSetTag = "data-srcset";
-        $sizesTag = "data-sizes";
-
-        $classes = null;
-
-        // get passed classes
-        if (isset($args[1]) && $args[1] !== false && $args[1] !== "") {
-            $classes = $args[1];
-        }
-
-        // add lazyload class if enabled in module settings
-        if (isset($this->configData['addLazyloadClass']) && $this->configData['addLazyloadClass'] === 1) {
-            // add only if class is not present
-            if (strpos($classes, 'lazyload') === false) {
-                $classes .= ' lazyload';
-            }
-        }
-
-        $sizeName = isset($args[0]) ? $args[0] : null;
-        $pwImageResizeOptions = isset($args[2]) ? $args[2] : null;
-        $flags = isset($args[3]) ? $args[3] : null;
-
-        if (
-            !($img instanceof Pageimage) ||
-            !isset($sizeName) ||
-            empty($sizeName)
-        ) {
+        // at least one set must be provided
+        if (empty($args)) {
             return false;
         }
 
-        $srcset = array();
-        $breakpoints = wire('modules')->MarkupSrcSet->breakpoints;
-        $sizeArray = wire('config')->imageSets[$sizeName];
+        // prepend $img to the arguments
+        array_unshift($args, $event->object);
 
-        if (isset($this->configData['useSrcSetAttr']) && $this->configData['useSrcSetAttr'] === 1) {
-            $srcSetTag = "srcset";
-            $sizesTag = "sizes";
-        }
-
-        // get data-sizes value from the highest breakpoint
-        $sizesMax = explode(' ', $breakpoints);
-        $sizesMax = end($sizesMax);
-        $sizesMax = str_replace('w', 'px', $sizesMax);
-
-        $dataSizes = '(max-width: ' . $sizesMax . ') calc(100vw - 20px), ' . $sizesMax;
-
-        foreach ($sizeArray as $breakpoint => $sizes) {
-            $srcset[$breakpoint] = $img->size($sizes[0], $sizes[1], $pwImageResizeOptions)->url . ' ' . $breakpoint;
-        }
-
-        $needFallbackImage = (stripos($flags, 'noFallbackImage') === false);
-
-        if ($needFallbackImage) {
-            $fallbackImg = reset($sizeArray);
-            $fallbackImg = $img->size($fallbackImg[0], $fallbackImg[1], $pwImageResizeOptions);
-            $fallbackImgSrc = $fallbackImg->url;
-        }
-
-        if ($mode === 'srcset') {
-
-            $markup = $srcSetTag . '="' . implode(', ', $srcset) . '" ' . $sizesTag . '="' . $dataSizes . '"';
-
-            if ($needFallbackImage) {
-                $markup = 'src="' . $fallbackImgSrc . '" ' . $markup;
-            }
-
-        } elseif ($mode === 'bgset') {
-
-            // note: bgset always needs data-sizes
-            $markup = 'data-bgset="' . implode(', ', $srcset) . '" data-sizes="' . $dataSizes . '"';
-
-            if ($needFallbackImage) {
-                $markup = $markup . ' style="background-image: url(' . $fallbackImgSrc . ')"';
-            }
-
-        }
-
-        if (!empty($classes)) {
-            $markup .= ' class="' . $classes . '"';
-        }
-
-        return $markup;
-    }
-
-    /** Get responsive image sizes by name from config data.
-     *
-     * @param $sizeName
-     *
-     * @return mixed
-     */
-    public function getSrcSetSize($sizeName) {
-        $imageSets = wire('config')->imageSets;
-
-        return isset($imageSets[$sizeName]) ? $imageSets[$sizeName] : null;
+        $event->return = call_user_func_array(array($this, 'generateSrcSetMarkup'), $args);
     }
 
 
     /**
-     * Calculate responsive image sizes based on smallest one, keeping ratio.
-     * Example: getSizeArray([[640, 213], null, 1.5, 3])
-     * Example: getSizeArray([[640, 213], null, 1.5, [1920, 640]])
+     * Generate srcset markup.
      *
-     * @param $sizes
+     * IMPORTANT - add to CSS: img[data-sizes="auto"] { display: block; width: 100%; }
      *
-     * @return array
+     * @param $img           ProcessWire Pageimage object
+     * @param $sets          string image set
+     * @param array $options ProcessWire's image resize options
+     *
+     * @return bool|string
      */
-    public function getSizeArray($sizes) {
+    public function generateSrcSetMarkup($img, $sets = null, $options = null)
+    {
+        $srcSetString = "";
+        $imgSizes = array();
+        $srcSets = array();
 
-        $baseSize = $sizes[0];
+        if (!($img instanceof Pageimage) || is_null($sets)) {
+            return false;
+        }
 
-        $breakpoints = explode(' ', $this->breakpoints);
+        $srcsetArray = stringToArray($sets, ',');
 
-        $sizeArray = array(
-            $breakpoints[0] => $baseSize
-        );
+        if (!is_array($srcsetArray)) {
+            return false;
+        }
 
-        for ($i = 1; $i < count($sizes); $i++) {
+        // get sets in array format
+        for ($ii = 0; $ii < count($srcsetArray); $ii++) {
 
-            // skip null items
-            if (is_null($sizes[$i])) {
+            $set = $srcsetArray[$ii];
+            $currentSize = false;
+
+            if ($set === '0x0') {
                 continue;
             }
 
-            // check if an array of image width/height or a multiplier is supplied
-            if (is_array($sizes[$i])) {
+            // first item must be width x height string (no multiplier nor divisor allowed)
+            if ($ii === 0) {
 
-                $imageSizes = $sizes[$i];
-
-                if (is_null($imageSizes[1])) {
-                    // if height is null, calculate percentage using width / mobile width
-                    $multiplier = $imageSizes[0] / $baseSize[0];
-                    $imageSizes[1] = (int)round($baseSize[1] * $multiplier);
-
-                } elseif (is_null($imageSizes[0])) {
-                    // if width is null, calculate percentage using height / mobile height
-                    $multiplier = $imageSizes[1] / $baseSize[1];
-                    $imageSizes[0] = (int)round($baseSize[0] * $multiplier);
+                // stop if it's not in WxH format
+                if (strpos($set, 'x') === false) {
+                    if (is_numeric($set) && (int)$set > 0) {    // if it's only a number, assume Wx0
+                        $set = $set . 'x0';
+                    } elseif ($set === "fullsize") {    // if it's "fullsize", add current image dimensions
+                        $set = $img->width . '_fullsizex' . $img->height;
+                    } else {
+                        return false;
+                    }
                 }
 
-                $sizeArray[$breakpoints[$i]] = $imageSizes;
+                $currentSize = stringToArray($set, 'x');
 
             } else {
 
-                $multiplier = $sizes[$i];
+                if (strpos($set, '/') === 0) {
 
-                $sizeArray[$breakpoints[$i]] = array_map(function ($item) use ($multiplier) {
-                    return (int)round($item * $multiplier);
-                }, $baseSize);
+                    // divisor, eg. "/3" - calculate values from first item of $imgSizes
+                    $divisor = (double)ltrim($set, '/');
+
+                    if ($divisor > 0) {
+                        $currentSize = array_map(function ($item) use ($divisor) {
+                            return (int)$item / $divisor;
+                        }, reset($imgSizes));
+                    }
+
+                } elseif (strpos($set, '*') === 0) {
+
+                    // multiplier, eg. "*3" - calculate values from first item of $imgSizes
+                    $multiplier = (double)ltrim($set, '*');
+
+                    if ($multiplier > 0) {
+                        $currentSize = array_map(function (&$item) use ($multiplier) {
+                            return (int)$item * $multiplier;
+                        }, reset($imgSizes));
+                    }
+
+                } else {
+                    // no divisor nor multiplier
+                    $currentSize = stringToArray($set, 'x', 'int');
+                }
+            }
+
+            if ($currentSize) {
+                $imgSizes[] = $currentSize;
             }
         }
 
-        return $sizeArray;
+        if (empty($imgSizes)) {
+            return false;
+        }
+
+        // create associative array of resized images, use widths as keys
+        foreach ($imgSizes as $set) {
+            if (strpos($set[0], "_fullsize") !== false) {
+                $currentImage = $img;
+            } else {
+                $currentImage = $img->size($set[0], $set[1], $options);
+            }
+
+            $srcSets[$currentImage->width] = $currentImage->url;
+        }
+
+        ksort($srcSets);
+
+        // build srcset string + add helpers
+
+        $srcsetUrls = array();
+        $counter = 0;
+
+        foreach ($srcSets as $width => $url) {
+
+            if ($counter == 0) {
+                $srcsetUrls['first'] = $url;
+            }
+
+            $srcsetUrls[$counter] = $url;
+
+            if ($counter == count($srcSets) - 1) {
+                $srcsetUrls['last'] = $url;
+            }
+
+            $srcSetString .= $url . ' ' . $width . 'w,';
+
+            $counter++;
+        }
+
+        $img->srcsetUrls = $srcsetUrls;
+
+        return rtrim($srcSetString, ',');
     }
 
 
     /**
-     * Save image size sets to global $config->imageSets array.
-     *
-     * @param HookEvent $event
-     *
-     * @return void
+     * Append JavaScript assets to document body.
      */
-    public function storeImageSets(HookEvent $event) {
+    public function loadScripts(HookEvent $event)
+    {
 
-        $config = wire('config');
-        $configImageSets = array();
-        $imageSets = $this->imageSets;
+        $html = $event->return;
 
-        if (!empty($imageSets)) {
-            $imageSets = json_decode($imageSets, true);
-
-            foreach ($imageSets as $set => $sizes) {
-                $configImageSets[$set] = $this->getSizeArray($sizes);
-            }
-        }
-
-        $config->imageSets = $configImageSets;
-    }
-
-    /**
-     * Append lazysizes JavaScript assets to document body.
-     *
-     * @param HookEvent $event
-     */
-    public function loadScripts(HookEvent $event) {
-
-        if ($event->object->template == 'admin') {
+        // do not load scripts if no lazysize image found
+        if (strpos($html, ' data-srcset=') === false && strpos($html, ' data-bgset=') === false) {
             return;
         }
 
-        // do not load scripts if no lazysize image is available
-        if (strpos($event->return, 'data-bgset') === false && strpos($event->return, 'data-srcset') === false) {
-            return;
-        }
-
-        $baseUrl = wire('config')->urls->{$this->className} . 'scripts';
+        $jsUrl = wire('config')->urls->{$this->className} . 'scripts/markupsrcset.js';
 
 //        order:
-//        picturefill.min.js
-//        ls.bgset.min.js
+//        ls.respimg
+//        ls.bgset
 //        ls.attrchange
 //        lazysizes
 
-        $event->return = str_replace("</body>", '<script src="' . $baseUrl . '/markupsrcset.min.js" async></script></body>', $event->return);
+        $event->return = str_replace("</body>",
+            '<script src="' . $jsUrl . '" async></script></body>', $html);
     }
 
+
     /**
-     * Return an InputfieldWrapper of Inputfields used to configure the class
-     *
-     * @param array $data Array of config values indexed by field name
-     *
-     * @return InputfieldWrapper
-     *
+     * Return an InputfieldWrapper of Inputfields used to configure the class.
      */
-    public static function getModuleConfigInputfields(array $data) {
+    public static function getModuleConfigInputfields(array $data)
+    {
 
         $defaultData = self::getDefaultData();
         $data = array_merge($defaultData, $data);
 
         $wrapper = new InputfieldWrapper();
 
-        $fieldName = 'breakpoints';
-        $f = wire('modules')->get("InputfieldText");
-        $f->attr('name', $fieldName);
-        $f->label = __('Breakpoints', __FILE__);
-        $f->description = __('Breakpoint sizes in pixels, mobile-first.', __FILE__);
-        $f->notes = __('Default', __FILE__) . ': ' . '`' . $defaultData[$fieldName] . '`';
-        $f->value = !empty($data[$fieldName]) ? $data[$fieldName] : $defaultData[$fieldName];
-        $wrapper->add($f);
-
-
-        $fieldName = 'imageSets';
-        $f = wire('modules')->get("InputfieldTextarea");
-        $f->attr('name', $fieldName);
-        $f->label = __('Image Sets', __FILE__);
-        $f->description = __('JSON array of image sizes.', __FILE__);
-        $f->value = !empty($data[$fieldName]) ? $data[$fieldName] : $defaultData[$fieldName];
-        $wrapper->add($f);
-
-        $fieldName = 'addLazyloadClass';
-        $f = wire('modules')->get("InputfieldCheckbox");
-        $f->attr('name', $fieldName);
-        $f->label = __('Add "lazyload" class', __FILE__);
-        $f->notes = __('Add "lazyload" class to image markup automatically. The class can be added manually in template code where needed.', __FILE__);
-        $f->attr('checked', (isset($data[$fieldName]) && $data[$fieldName] == '1') ? 'checked' : '');
-        $f->columnWidth = 33;
-        $wrapper->add($f);
-
         $fieldName = 'loadScripts';
         $f = wire('modules')->get("InputfieldCheckbox");
         $f->attr('name', $fieldName);
         $f->label = __('Load scripts', __FILE__);
-        $f->notes = __('Uncheck to disable loading lazysize JavaScripts (e.g if you would like to load them manually).', __FILE__);
+        $f->description = __('Uncheck to disable auto-loading JavaScript assets (e.g if you would like to load manually).',
+            __FILE__);
+        $f->notes = __('Scripts are loaded only if there is data-srcset or data-bgset in the markup.', __FILE__);
         $f->attr('checked', (isset($data[$fieldName]) && $data[$fieldName] == '1') ? 'checked' : '');
-        $f->columnWidth = 33;
-        $wrapper->add($f);
-
-        $fieldName = 'useSrcSetAttr';
-        $f = wire('modules')->get("InputfieldCheckbox");
-        $f->attr('name', $fieldName);
-        $f->label = __('Use "srcset" attribute', __FILE__);
-        $f->notes = __('Check to add "srcset" tag on images instead of "data-srcset". This allows native srcset functionality in supported browsers.', __FILE__);
-        $f->attr('checked', (isset($data[$fieldName]) && $data[$fieldName] == '1') ? 'checked' : '');
-        $f->columnWidth = 34;
         $wrapper->add($f);
 
         return $wrapper;
