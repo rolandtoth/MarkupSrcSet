@@ -2,8 +2,11 @@
 
 Generate srcset markup for [Lazysizes](https://github.com/aFarkas/Lazysizes) in [ProcessWire CMS](http://processwire.com/).
 
+- [ProcessWire forum topic](https://processwire.com/talk/topic/12981-markupsrcset/)
+- [ProcessWire Modules Directory](http://modules.processwire.com/modules/markup-src-set/)
 
-## Install and usage
+
+## Installation and usage
 
 1. Install the module
 
@@ -27,8 +30,6 @@ $image->srcset($sets [, $options])
 
 #### Sets
 
-*required parameter*
-
 Sets are comma-separated list of the desired image variation dimensions. For convenience it is possible to use a number as a multiplier/divisor to calculate new sets.
 
 The first set is the base size and needs to be in a **width** x **height** format (eg. `640x210`). This doesn't mean it has to be the smallest image set as sets will be automatically sorted in ascending order in the final output.
@@ -40,8 +41,11 @@ There is no limit on the number of sets.
 *Examples:*
 
 `1200x900, 600x450, 300x225`
+
 `1200x900, /2, /3` => 400x300, 600x450, 1200x900
+
 `800x400, /2, *2` => 400x200, 800x400, 1600x800
+
 `800x0, /2, *2` => 400x200, 800x400, 1600x800 (if original image ratio was 2:1)
 
 *Tips:*
@@ -51,8 +55,6 @@ There is no limit on the number of sets.
 
 
 #### Options
-
-*optional parameter*
 
 Array of ProcessWire's [image resize options](https://processwire.com/api/fieldtypes/images/).
 
@@ -65,12 +67,15 @@ Array of ProcessWire's [image resize options](https://processwire.com/api/fieldt
 
 ## Examples
 
+
 ```php
-<img src="..." data-srcset="<?php echo $page->featured_image->srcset('200x300,500x750,*3') ?>" data-sizes="auto" alt="" class="lazyload" />
+<?php $img = $page->featured_image; ?>
 
-<img src="..." data-bgset="<?php echo $page->featured_image->srcset('1200x900,/2,/3') ?>" data-sizes="auto" alt="" class="lazyload" />
+<img src="..." data-srcset="<?php echo $img->srcset('200x300,500x750,*3') ?>" data-sizes="auto" alt="" class="lazyload" />
 
-<img src="..." data-srcset="<?php echo $page->featured_image->srcset('200x300,*2,*3') ?>" data-sizes="auto" alt="" class="lazyload" />
+<img src="..." data-bgset="<?php echo $img->srcset('1200x900,/2,/3') ?>" data-sizes="auto" alt="" class="lazyload" />
+
+<img src="..." data-srcset="<?php echo $img->srcset('200x300,*2,*3') ?>" data-sizes="auto" alt="" class="lazyload" />
 ```
 
 *Example output:*
@@ -81,7 +86,7 @@ Array of ProcessWire's [image resize options](https://processwire.com/api/fieldt
 
 The "lazyload" class and the "data-sizes" attribute need to be added to the markup. The latter can be set to "auto" unless you need specific needs (consult the Lazysizes documentation to learn more).
 
-**Important**: if you are using `data-sizes="auto"` it is recommended to add this into your CSS (from [here](https://github.com/aFarkas/lazysizes#markup-api):
+**Important**: if you are using `data-sizes="auto"` it is recommended to add this into your CSS (from [here](https://github.com/aFarkas/lazysizes#markup-api)):
 
 ```css
 img[data-sizes="auto"] {
