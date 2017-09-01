@@ -32,7 +32,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
             'title'     => 'MarkupSrcSet',
             'summary'   => __('Generate srcset markup with ease.', __FILE__),
             'href'      => 'http://modules.processwire.com/modules/markup-src-set/',
-            'version'   => 10,
+            'version'   => 11,
             'author'    => 'Roland Toth',
             'autoload'  => 'template!=admin',
             'singular'  => true,
@@ -120,7 +120,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
             return false;
         }
 
-        $srcsetArray = stringToArray($sets, ',');
+        $srcsetArray = $this->stringToArray($sets, ',');
 
         if (!is_array($srcsetArray)) {
             return false;
@@ -150,7 +150,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
                     }
                 }
 
-                $currentSize = stringToArray($set, 'x');
+                $currentSize = $this->stringToArray($set, 'x');
 
             } else {
 
@@ -178,7 +178,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
 
                 } else {
                     // no divisor nor multiplier
-                    $currentSize = stringToArray($set, 'x', 'int');
+                    $currentSize = $this->stringToArray($set, 'x', 'int');
                 }
             }
 
@@ -256,6 +256,25 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
         $event->return = str_replace("</body>",
             '<script src="' . $jsUrl . '" async></script></body>', $html);
     }
+
+
+    // explode string by a separator + trim + remove empty items
+	protected function stringToArray($str, $separator, $format = 'string')
+	{
+	    if (strpos($str, $separator) === false) {
+	        return false;
+	    }
+	    $arr = explode($separator, $str);
+	    $arr = array_map('trim', $arr); //trim whitespace
+		//	$arr = array_filter($arr, 'trim');  // remove empty items (removes 0x200 too!)
+	    $arr = array_filter($arr, function ($value) {
+	        return ($value !== null && $value !== false && $value !== '');
+	    });
+	    if ($format === 'int') {
+	        $arr = array_map('intval', $arr);
+	    }
+	    return $arr;
+	}
 
 
     /**

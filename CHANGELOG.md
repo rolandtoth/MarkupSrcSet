@@ -1,6 +1,11 @@
 #Changelog
 
 
+### 0.1.1 (2017-09-01)
+
+- fix call to undefined function stringToArray (reported by phlppschrr)
+
+
 ### 0.1.0 (2017-08-31)
 
 - complete rewrite - read the docs!
