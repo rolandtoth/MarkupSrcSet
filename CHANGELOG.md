@@ -1,6 +1,14 @@
 #Changelog
 
 
+### 0.1.2 (2017-09-0)
+
+- keep $srcsetUrls user-defined order + use smallest/largest instead first/last (by phlppschrr)
+- added missing documentation to the "original" keyword
+- added example with CroppableImage3
+- moved documentation to GitHub wiki
+
+
 ### 0.1.1 (2017-09-01)
 
 - fix call to undefined function stringToArray (reported by phlppschrr)

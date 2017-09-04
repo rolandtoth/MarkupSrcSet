@@ -32,7 +32,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
             'title'     => 'MarkupSrcSet',
             'summary'   => __('Generate srcset markup with ease.', __FILE__),
             'href'      => 'http://modules.processwire.com/modules/markup-src-set/',
-            'version'   => 11,
+            'version'   => 12,
             'author'    => 'Roland Toth',
             'autoload'  => 'template!=admin',
             'singular'  => true,
@@ -143,8 +143,8 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
                 if (strpos($set, 'x') === false) {
                     if (is_numeric($set) && (int)$set > 0) {    // if it's only a number, assume Wx0
                         $set = $set . 'x0';
-                    } elseif ($set === "fullsize") {    // if it's "fullsize", add current image dimensions
-                        $set = $img->width . '_fullsizex' . $img->height;
+                    } elseif ($set === "original") {    // use the original image dimensions if "original" keyword is used
+                        $set = $img->width . '_originalx' . $img->height;
                     } else {
                         return false;
                     }
@@ -193,7 +193,7 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
 
         // create associative array of resized images, use widths as keys
         foreach ($imgSizes as $set) {
-            if (strpos($set[0], "_fullsize") !== false) {
+            if (strpos($set[0], "_original") !== false) {
                 $currentImage = $img;
             } else {
                 $currentImage = $img->size($set[0], $set[1], $options);
@@ -202,29 +202,22 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
             $srcSets[$currentImage->width] = $currentImage->url;
         }
 
-        ksort($srcSets);
-
         // build srcset string + add helpers
 
         $srcsetUrls = array();
         $counter = 0;
 
         foreach ($srcSets as $width => $url) {
-
-            if ($counter == 0) {
-                $srcsetUrls['first'] = $url;
-            }
-
             $srcsetUrls[$counter] = $url;
-
-            if ($counter == count($srcSets) - 1) {
-                $srcsetUrls['last'] = $url;
-            }
-
             $srcSetString .= $url . ' ' . $width . 'w,';
-
             $counter++;
         }
+
+        $keys = array_keys($srcSets);
+        natsort($keys);
+
+        $srcsetUrls['smallest'] = $srcSets[reset($keys)];
+        $srcsetUrls['largest'] = $srcSets[array_pop($keys)];
 
         $img->srcsetUrls = $srcsetUrls;
 
@@ -259,22 +252,23 @@ class MarkupSrcSet extends WireData implements Module, ConfigurableModule
 
 
     // explode string by a separator + trim + remove empty items
-	protected function stringToArray($str, $separator, $format = 'string')
-	{
-	    if (strpos($str, $separator) === false) {
-	        return false;
-	    }
-	    $arr = explode($separator, $str);
-	    $arr = array_map('trim', $arr); //trim whitespace
-		//	$arr = array_filter($arr, 'trim');  // remove empty items (removes 0x200 too!)
-	    $arr = array_filter($arr, function ($value) {
-	        return ($value !== null && $value !== false && $value !== '');
-	    });
-	    if ($format === 'int') {
-	        $arr = array_map('intval', $arr);
-	    }
-	    return $arr;
-	}
+    protected function stringToArray($str, $separator, $format = 'string')
+    {
+        if (strpos($str, $separator) === false) {
+            return false;
+        }
+        $arr = explode($separator, $str);
+        $arr = array_map('trim', $arr); //trim whitespace
+        //	$arr = array_filter($arr, 'trim');  // remove empty items (removes 0x200 too!)
+        $arr = array_filter($arr, function ($value) {
+            return ($value !== null && $value !== false && $value !== '');
+        });
+        if ($format === 'int') {
+            $arr = array_map('intval', $arr);
+        }
+
+        return $arr;
+    }
 
 
     /**
